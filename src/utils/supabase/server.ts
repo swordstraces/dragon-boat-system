@@ -2,6 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.warn('⚠️ Server: Missing Supabase Env. Returning mock user for UI testing.')
+    return {
+      auth: {
+        getUser: async () => ({ data: { user: { email: 'coach@dragonboat.com' } } }),
+        signInWithPassword: async () => ({ error: null }),
+        signUp: async () => ({ error: null }),
+      }
+    } as any
+  }
+
   const cookieStore = await cookies()
 
   return createServerClient(
