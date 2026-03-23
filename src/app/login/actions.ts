@@ -2,18 +2,44 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/utils/supabase/server'
 
-export async function selectMember(formData: FormData) {
-  const memberId = formData.get('memberId') as string
+export async function enterSystem(formData: FormData) {
+  const name = formData.get('name') as string
+  if (!name || name.trim() === '') return
+
   const cookieStore = await cookies()
+  const supabase = await createClient()
 
-  if (memberId) {
-    cookieStore.set('member_id', memberId, {
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      path: '/',
-    })
-    redirect('/')
+  // 1. Check if member exists
+  const { data: existingMember } = await supabase
+    .from('members')
+    .select('id')
+    .eq('full_name', name.trim())
+    .single()
+
+  let memberIdValue: string
+
+  if (existingMember) {
+    memberIdValue = String(existingMember.id)
+  } else {
+    // 2. Create new member if not exists
+    const { data: newMember, error } = await supabase
+      .from('members')
+      .insert({ full_name: name.trim(), role: 'member' })
+      .select('id')
+      .single()
+    
+    // If Supabase is in mock mode (error or no return), we use a timestamp as ID
+    memberIdValue = newMember ? String(newMember.id) : String(Date.now())
   }
+
+  cookieStore.set('member_id', memberIdValue, {
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+    path: '/',
+  })
+  
+  redirect('/')
 }
 
 export async function signout() {
