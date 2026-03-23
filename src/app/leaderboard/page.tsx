@@ -1,90 +1,108 @@
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server'
+import { getSelectedMember, createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
 export default async function LeaderboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const member = await getSelectedMember()
 
-  if (!user) {
+  if (!member) {
     redirect('/login')
   }
 
-  const leaderboard = [
-    { rank: 1, name: '队长李雷', count: 24, trend: 'up' },
-    { rank: 2, name: '韩梅梅', count: 22, trend: 'up' },
-    { rank: 3, name: '张伟', count: 21, trend: 'down' },
-    { rank: 4, name: '王大锤', count: 18, trend: 'same' },
-    { rank: 5, name: '刘备', count: 15, trend: 'up' },
-    { rank: 6, name: '关羽', count: 14, trend: 'down' },
-  ]
+  const supabase = await createClient()
+
+  // Try to fetch real leaderboard from DB
+  let leaders: any[] = []
+  try {
+    const { data: membersData } = await supabase
+      .from('members')
+      .select('id, full_name, checkins(id)')
+    
+    if (membersData) {
+      leaders = membersData.map((m: any) => ({
+        id: m.id,
+        name: m.full_name,
+        count: m.checkins.length || 0,
+        level: (m.checkins.length || 0) > 10 ? '核心主力' : '预备队员'
+      })).sort((a, b) => b.count - a.count)
+    }
+  } catch (e) {}
+
+  // Mock if DB not ready
+  if (leaders.length === 0) {
+    leaders = [
+      { id: 1, name: '队长李雷', count: 24, level: '核心主力' },
+      { id: 2, name: '韩梅梅', count: 21, level: '核心主力' },
+      { id: 3, name: '张伟', count: 18, level: '预备队员' },
+      { id: 4, name: '王大锤', count: 12, level: '预备队员' },
+    ]
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white font-sans pb-24">
-      <header className="px-6 pt-12 pb-6 sticky top-0 bg-neutral-950/80 backdrop-blur-md z-10">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">内卷排行榜</h1>
-        <p className="text-neutral-400 text-sm mt-1">本月累计打卡次数</p>
+      <header className="px-6 pt-16 pb-12 bg-gradient-to-b from-neutral-900/50 to-neutral-950 border-b border-neutral-900">
+        <h1 className="text-4xl font-black mb-1">内卷排行榜</h1>
+        <p className="text-neutral-500 text-sm font-medium tracking-tight">谁才是队里的“全勤卷王”？🏆</p>
       </header>
 
-      <main className="px-6 space-y-6">
+      <main className="px-6 -mt-6">
         {/* Top 3 Podium */}
-        <div className="flex justify-center items-end h-48 gap-3 mt-4">
-          {/* 2nd Place */}
-          <div className="flex flex-col items-center w-24">
-            <div className="w-12 h-12 rounded-full bg-slate-400 mb-2 border-2 border-slate-300 flex items-center justify-center font-bold shadow-lg shadow-slate-500/20 text-neutral-900">
-              梅
-            </div>
-            <div className="w-full bg-gradient-to-t from-slate-800 to-slate-700 h-24 rounded-t-lg flex flex-col items-center justify-start pt-2 border-t-2 border-slate-500">
-              <span className="text-xl font-bold text-slate-300">2</span>
-              <span className="text-xs text-slate-400">{leaderboard[1].count}次</span>
-            </div>
-            <span className="text-xs font-medium mt-2 text-white">{leaderboard[1].name}</span>
-          </div>
+        <div className="flex items-end justify-center gap-4 mb-12">
+           {/* 2nd */}
+           <div className="flex flex-col items-center flex-1">
+              <div className="h-10 w-10 text-2xl mb-2">🥈</div>
+              <div className="w-16 h-16 rounded-2xl bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center font-black text-xl mb-3 shadow-lg">
+                 {leaders[1]?.name.charAt(0)}
+              </div>
+              <p className="text-xs font-bold text-neutral-400">{leaders[1]?.name}</p>
+              <div className="h-20 w-full bg-neutral-900 rounded-t-2xl mt-4 flex items-center justify-center border-x border-t border-neutral-800">
+                 <span className="font-black text-blue-400">{leaders[1]?.count || 0}</span>
+              </div>
+           </div>
 
-          {/* 1st Place */}
-          <div className="flex flex-col items-center w-28 -mb-4 z-10">
-            <div className="w-16 h-16 rounded-full bg-yellow-400 mb-2 border-2 border-yellow-200 flex items-center justify-center font-bold text-xl shadow-xl shadow-yellow-500/30 text-yellow-900">
-              雷
-            </div>
-            <div className="w-full bg-gradient-to-t from-yellow-900/60 to-yellow-600 h-32 rounded-t-lg flex flex-col items-center justify-start pt-3 border-t-2 border-yellow-400 shadow-[0_-10px_20px_rgba(234,179,8,0.2)]">
-              <span className="text-3xl font-black text-yellow-100 drop-shadow-md">1</span>
-              <span className="text-sm font-bold text-yellow-200">{leaderboard[0].count}次</span>
-            </div>
-            <span className="text-sm font-bold text-yellow-500 mt-2">{leaderboard[0].name}</span>
-          </div>
+           {/* 1st */}
+           <div className="flex flex-col items-center flex-1">
+              <div className="h-12 w-12 text-3xl mb-2 animate-bounce">👑</div>
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-yellow-500 to-orange-500 flex items-center justify-center font-black text-3xl mb-3 shadow-2xl shadow-orange-500/20 border-2 border-white/20">
+                 {leaders[0]?.name.charAt(0)}
+              </div>
+              <p className="text-sm font-black italic">{leaders[0]?.name}</p>
+              <div className="h-32 w-full bg-neutral-800 rounded-t-3xl mt-4 flex flex-col items-center justify-center border-x border-t border-neutral-700">
+                 <span className="text-2xl font-black text-orange-400">{leaders[0]?.count || 0}</span>
+                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">WINS</span>
+              </div>
+           </div>
 
-          {/* 3rd Place */}
-          <div className="flex flex-col items-center w-24">
-            <div className="w-12 h-12 rounded-full bg-amber-700 mb-2 border-2 border-amber-600 flex items-center justify-center font-bold shadow-lg shadow-amber-900/20 text-amber-100">
-              张
-            </div>
-            <div className="w-full bg-gradient-to-t from-amber-950 to-amber-900 h-20 rounded-t-lg flex flex-col items-center justify-start pt-2 border-t-2 border-amber-700">
-              <span className="text-xl font-bold text-amber-500">3</span>
-              <span className="text-xs text-amber-600">{leaderboard[2].count}次</span>
-            </div>
-            <span className="text-xs font-medium mt-2 text-white">{leaderboard[2].name}</span>
-          </div>
+           {/* 3rd */}
+           <div className="flex flex-col items-center flex-1">
+              <div className="h-8 w-8 text-xl mb-2">🥉</div>
+              <div className="w-14 h-14 rounded-2xl bg-neutral-800 border border-neutral-700 flex items-center justify-center font-black text-lg mb-3 shadow-md">
+                 {leaders[2]?.name.charAt(0)}
+              </div>
+              <p className="text-[10px] font-bold text-neutral-500">{leaders[2]?.name}</p>
+              <div className="h-14 w-full bg-neutral-900 rounded-t-2xl mt-4 flex items-center justify-center border-x border-t border-neutral-800">
+                 <span className="font-black text-emerald-400">{leaders[2]?.count || 0}</span>
+              </div>
+           </div>
         </div>
 
-        {/* The Rest of the list */}
-        <div className="bg-neutral-900 rounded-3xl border border-neutral-800 p-2 space-y-1 mt-8">
-          {leaderboard.slice(3).map((user) => (
-            <div key={user.rank} className="flex items-center justify-between p-3 rounded-2xl hover:bg-neutral-800 transition-colors">
-              <div className="flex items-center gap-4">
-                <span className="w-6 text-center font-bold text-neutral-500">{user.rank}</span>
-                <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center font-bold text-sm text-neutral-300">
-                  {user.name.charAt(user.name.length - 1)}
+        {/* The List */}
+        <div className="bg-neutral-900 rounded-[2.5rem] border border-neutral-800 overflow-hidden divide-y divide-neutral-800/50">
+           {leaders.map((l, i) => (
+             <div key={i} className="flex items-center justify-between p-6">
+                <div className="flex items-center gap-5">
+                   <span className="text-xl font-black italic opacity-20 w-6">#{i + 1}</span>
+                   <div>
+                      <h4 className="font-bold text-sm text-white">{l.name}</h4>
+                      <p className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest">{l.level}</p>
+                   </div>
                 </div>
-                <span className="font-medium text-white">{user.name}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-lg">{user.count}</span>
-                {user.trend === 'up' && <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>}
-                {user.trend === 'down' && <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>}
-                {user.trend === 'same' && <svg className="w-4 h-4 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>}
-              </div>
-            </div>
-          ))}
+                <div className="text-right">
+                   <div className="text-xl font-black">{l.count}</div>
+                   <div className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest">Times</div>
+                </div>
+             </div>
+           ))}
         </div>
       </main>
 
@@ -100,7 +118,7 @@ export default async function LeaderboardPage() {
         </Link>
         <Link href="/leaderboard" className="flex flex-col items-center gap-1 p-2 text-white">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-          内卷榜
+          排行榜
         </Link>
         <Link href="/profile" className="flex flex-col items-center gap-1 p-2 hover:text-white transition-colors">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
