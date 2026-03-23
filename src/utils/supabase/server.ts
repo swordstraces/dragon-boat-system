@@ -7,23 +7,39 @@ export async function createClient() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   // If environment variables are missing, return a Mock Supabase Client
-  // This prevents crashes during local development or on Vercel without env vars.
   if (!supabaseUrl || !supabaseKey) {
     console.warn('⚠️ CreateClient: Supabase Env missing. Bypassing with Mock Client.')
-    return {
-      from: (table: string) => ({
-        select: () => ({
-          order: () => ({ data: [], error: null }),
-          eq: () => ({
-            single: () => ({ data: null, error: null }),
-            data: [],
-            error: null
-          }),
+    
+    // helper to create a mock chainable object
+    const mockChain = {
+      select: () => ({
+        order: () => ({ data: [], error: null }),
+        eq: () => ({
+          single: () => ({ data: null, error: null }),
+          data: [],
+          error: null
         }),
-        insert: () => ({ error: null }),
-        update: () => ({ eq: () => ({ error: null }) }),
-        delete: () => ({ eq: () => ({ error: null }) }),
+        single: () => ({ data: null, error: null }),
+        data: [],
+        error: null
       }),
+      eq: () => ({
+        select: () => ({
+          single: () => ({ data: null, error: null }),
+        }),
+        single: () => ({ data: null, error: null }),
+        error: null
+      }),
+      insert: () => mockChain, // Allow chaining after insert
+      update: () => mockChain, // Allow chaining after update
+      upsert: () => mockChain, // Allow chaining after upsert
+      delete: () => mockChain, // Allow chaining after delete
+      single: () => ({ data: null, error: null }),
+      then: (resolve: any) => resolve({ data: null, error: null }), // Make it awaitable
+    }
+
+    return {
+      from: () => mockChain,
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
         getSession: async () => ({ data: { session: null }, error: null }),
@@ -49,24 +65,18 @@ export async function createClient() {
   })
 }
 
-/**
- * Helper to get the currently selected member from cookie.
- * No longer uses Supabase Auth.
- */
 export async function getSelectedMember() {
   const cookieStore = await cookies()
   const memberId = cookieStore.get('member_id')?.value
 
   if (!memberId) return null
 
-  // If no env vars, return mock user directly
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    const mockNames: Record<string, string> = {
-      '1': '队长李雷', '2': '韩梅梅', '3': '张伟', '4': '王大锤', '5': '刘备', '6': '关羽'
-    }
+    // If it's a numeric ID (original mock) or a timestamp (new mock), we return a dummy name
+    // If it's a name we've "stored" in the cookie, we try to use that.
     return { 
       id: memberId, 
-      full_name: mockNames[memberId] || '队员' + memberId, 
+      full_name: isNaN(Number(memberId)) ? memberId : '队员' + memberId, 
       role: memberId === '1' ? 'coach' : 'member' 
     }
   }

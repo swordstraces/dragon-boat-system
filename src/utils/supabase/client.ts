@@ -7,17 +7,28 @@ export function createClient() {
   // Return a mock client if environment variables are missing
   if (!supabaseUrl || !supabaseKey) {
     console.warn('⚠️ CreateClient(Client): Supabase Env missing. Returning Mock.')
-    return {
-      from: (table: string) => ({
-        select: () => ({
-          order: () => ({ data: [], error: null }),
-          eq: () => ({
-            single: () => ({ data: null, error: null }),
-            data: [],
-            error: null
-          }),
+    
+    const mockChain = {
+      select: () => ({
+        order: () => ({ data: [], error: null }),
+        eq: () => ({
+          single: () => ({ data: null, error: null }),
+          data: [],
+          error: null
         }),
+        single: () => ({ data: null, error: null }),
+        data: [],
+        error: null
       }),
+      insert: () => mockChain,
+      update: () => mockChain,
+      upsert: () => mockChain,
+      delete: () => mockChain,
+      then: (resolve: any) => resolve({ data: null, error: null }),
+    }
+
+    return {
+      from: () => mockChain,
       auth: {
         getUser: async () => ({ data: { user: null } }),
       }

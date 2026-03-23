@@ -30,8 +30,8 @@ export async function enterSystem(formData: FormData) {
       .select('id')
       .single()
     
-    // If Supabase is in mock mode (error or no return), we use a timestamp as ID
-    memberIdValue = newMember ? String(newMember.id) : String(Date.now())
+    // If Supabase is in mock mode (error or no return), we use the name itself as the ID
+    memberIdValue = newMember ? String(newMember.id) : name.trim()
   }
 
   cookieStore.set('member_id', memberIdValue, {
