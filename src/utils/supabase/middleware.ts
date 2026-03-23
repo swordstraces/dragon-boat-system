@@ -1,38 +1,27 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+export function updateSession(request: NextRequest) {
+  const memberId = request.cookies.get('member_id')
+  const { pathname } = request.nextUrl
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.warn('⚠️ Middleware: Missing Supabase Env. Bypassing auth check.')
-    return supabaseResponse
+  // Ignore API and static assets
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next()
   }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+  // Redirect to login (member selection) if no memberId is found
+  if (!memberId && pathname !== '/login') {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
 
-  await supabase.auth.getUser()
+  // If memberId is found and user is trying to go to login, send home
+  if (memberId && pathname === '/login') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
 
-  return supabaseResponse
+  return NextResponse.next()
 }

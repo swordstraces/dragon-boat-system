@@ -1,41 +1,23 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
 
-export async function login(formData: FormData) {
-  const supabase = await createClient()
+export async function selectMember(formData: FormData) {
+  const memberId = formData.get('memberId') as string
+  const cookieStore = await cookies()
 
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  if (memberId) {
+    cookieStore.set('member_id', memberId, {
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: '/',
+    })
+    redirect('/')
   }
-
-  const { error } = await supabase.auth.signInWithPassword(data)
-
-  if (error) {
-    redirect('/login?error=Could not authenticate user')
-  }
-
-  revalidatePath('/', 'layout')
-  redirect('/')
 }
 
-export async function signup(formData: FormData) {
-  const supabase = await createClient()
-
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
-
-  const { error } = await supabase.auth.signUp(data)
-
-  if (error) {
-    redirect('/login?error=Could not create user')
-  }
-
-  revalidatePath('/', 'layout')
-  redirect('/')
+export async function signout() {
+  const cookieStore = await cookies()
+  cookieStore.delete('member_id')
+  redirect('/login')
 }

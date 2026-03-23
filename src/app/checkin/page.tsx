@@ -1,85 +1,85 @@
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server'
+import { getSelectedMember } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
 export default async function CheckInPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const member = await getSelectedMember()
 
-  if (!user) {
+  if (!member) {
     redirect('/login')
   }
 
+  const memberName = member.full_name || '队员'
+
   return (
     <div className="min-h-screen bg-neutral-950 text-white font-sans pb-24">
-      <header className="px-6 pt-12 pb-6 sticky top-0 bg-neutral-950/80 backdrop-blur-md z-10 flex items-center gap-4">
-        <Link href="/" className="h-10 w-10 rounded-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
+      <header className="px-6 pt-16 pb-8 sticky top-0 bg-neutral-950/80 backdrop-blur-md z-10 flex items-center justify-between">
+        <Link href="/" className="h-10 w-10 rounded-2xl bg-neutral-900 flex items-center justify-center text-white border border-neutral-800 active:scale-95 transition-all">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold">今日打卡</h1>
-          <p className="text-neutral-400 text-sm mt-1">滴水穿石，贵在坚持</p>
+        <div className="text-right">
+          <h1 className="text-2xl font-black">训练打卡</h1>
+          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Training Check-in</p>
         </div>
       </header>
 
-      <main className="px-6 space-y-6">
-        <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl p-6 shadow-xl shadow-orange-900/20 relative overflow-hidden">
-          <div className="absolute -right-4 -bottom-4 opacity-20 text-9xl">🔥</div>
+      <main className="px-6 space-y-8">
+        {/* Status Card */}
+        <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[2.5rem] p-8 shadow-xl shadow-orange-900/20 relative overflow-hidden">
+          <div className="absolute -right-6 -bottom-6 opacity-20 text-[10rem] font-black rotate-12 select-none">GO</div>
           <div className="relative z-10">
-            <h2 className="text-white font-medium mb-1">本周已打卡</h2>
-            <div className="flex items-baseline gap-2 mb-6">
-              <span className="text-5xl font-black">3</span>
-              <span className="text-orange-200">次</span>
+            <h2 className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Current Identity</h2>
+            <div className="flex items-center gap-3 mb-8">
+               <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold">{memberName.charAt(0)}</div>
+               <span className="text-2xl font-black">{memberName}</span>
             </div>
-            <div className="flex items-center gap-1.5 w-full">
-              {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                <div key={day} className={`flex-1 h-3 rounded-full ${day <= 3 ? 'bg-white' : 'bg-black/30'}`}></div>
-              ))}
+            
+            <div className="space-y-2">
+               <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-orange-200">
+                  <span>Weekly Goal</span>
+                  <span>3 / 4 次</span>
+               </div>
+               <div className="flex items-center gap-2 w-full h-3 bg-black/30 rounded-full p-0.5">
+                  <div className="bg-white h-full w-[75%] rounded-full shadow-sm"></div>
+               </div>
             </div>
-            <p className="text-xs text-orange-200 mt-2">再打卡 1 次即可完成本周目标！</p>
           </div>
         </div>
 
-        <form className="space-y-6">
-          <section className="space-y-3">
-            <h3 className="font-bold text-lg">打卡类型</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="cursor-pointer">
+        <form className="space-y-8 pb-8">
+          <section className="space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500 px-2">选择打卡类型</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="cursor-pointer group">
                 <input type="radio" name="type" value="water" className="peer sr-only" defaultChecked />
-                <div className="rounded-2xl border-2 border-neutral-800 bg-neutral-900 p-4 text-center peer-checked:border-orange-500 peer-checked:bg-orange-500/10 transition-colors">
-                  <div className="text-2xl mb-1">🚣</div>
-                  <div className="font-bold text-sm text-white">水上训练</div>
+                <div className="rounded-[2rem] border-2 border-neutral-900 bg-neutral-900/50 p-6 text-center peer-checked:border-orange-500 peer-checked:bg-orange-500/10 transition-all group-active:scale-95">
+                  <div className="text-4xl mb-3">🛶</div>
+                  <div className="font-bold text-sm">水上实操</div>
                 </div>
               </label>
-              <label className="cursor-pointer">
+              <label className="cursor-pointer group">
                 <input type="radio" name="type" value="gym" className="peer sr-only" />
-                <div className="rounded-2xl border-2 border-neutral-800 bg-neutral-900 p-4 text-center peer-checked:border-orange-500 peer-checked:bg-orange-500/10 transition-colors">
-                  <div className="text-2xl mb-1">🏋️</div>
-                  <div className="font-bold text-sm text-white">健身房体能</div>
+                <div className="rounded-[2rem] border-2 border-neutral-900 bg-neutral-900/50 p-6 text-center peer-checked:border-orange-500 peer-checked:bg-orange-500/10 transition-all group-active:scale-95">
+                  <div className="text-4xl mb-3">🏋️</div>
+                  <div className="font-bold text-sm">力量房/体能</div>
                 </div>
               </label>
             </div>
           </section>
 
-          <section className="space-y-3">
-            <h3 className="font-bold text-lg">上传凭证照 (选填)</h3>
-            <div className="border-2 border-dashed border-neutral-800 rounded-2xl bg-neutral-900 p-8 text-center flex flex-col items-center justify-center text-neutral-400 hover:border-neutral-600 transition-colors cursor-pointer">
-              <svg className="w-8 h-8 mb-3 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              <p className="text-sm font-medium">点击拍照或上传图片</p>
-              <p className="text-xs mt-1">支持镜面自拍、运动手表截图等</p>
+          <section className="space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500 px-2">图片凭证</h3>
+            <div className="border-2 border-dashed border-neutral-800 rounded-[2rem] bg-neutral-900/30 p-10 text-center flex flex-col items-center justify-center text-neutral-600 hover:border-neutral-700 transition-colors cursor-pointer group active:scale-[0.98]">
+              <div className="w-16 h-16 rounded-3xl bg-neutral-900 flex items-center justify-center mb-4 group-hover:bg-neutral-800 transition-colors">
+                 <svg className="w-8 h-8 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+              <p className="font-bold text-sm text-neutral-400">点击拍照或上传图片</p>
+              <p className="text-[10px] uppercase font-medium tracking-widest mt-1 opacity-50">Upload Evidence</p>
             </div>
           </section>
 
-          <section className="space-y-3">
-            <h3 className="font-bold text-lg">训练心得 (选填)</h3>
-            <textarea 
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-4 text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 min-h-24 resize-none transition-colors text-white placeholder-neutral-600"
-              placeholder="记录一下今天的训练感受、力量数据，或是遇到的技术瓶颈..."
-            ></textarea>
-          </section>
-
-          <button type="button" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg rounded-2xl py-4 shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all">
-            提交打卡
+          <button type="button" className="w-full bg-white text-black font-black text-lg rounded-[2rem] py-5 shadow-2xl shadow-white/5 active:scale-[0.97] transition-all hover:bg-neutral-200">
+            确认提交打卡
           </button>
         </form>
       </main>
